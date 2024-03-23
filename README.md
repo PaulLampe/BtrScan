@@ -11,3 +11,13 @@ For Ubuntu 22.04+ the following command installs the third-party libraries:
 ```
 sudo apt update && sudo apt install liburing-dev openssl libssl-dev libjemalloc-dev lld g++ cmake
 ```
+
+BtrBlocks relies on arrow and tbb. IF your project does not include them anyways, install them via:
+
+tbb:
+```
+sudo apt update && sudo apt install libtbb-dev 
+```
+
+arrow: 
+https://arrow.apache.org/install/
