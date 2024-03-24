@@ -1,10 +1,10 @@
 #include "Downloader.hpp"
 #include "BtrBlocksFileNameResolver.hpp"
-#include "types.hpp"
 #include "btrblocks.hpp"
 #include "cloud/aws.hpp"
 #include "network/tasked_send_receiver.hpp"
 #include "network/transaction.hpp"
+#include "types.hpp"
 #include <cstddef>
 #include <future>
 #include <iostream>
@@ -20,7 +20,8 @@ namespace btrscan {
 using namespace anyblob;
 using namespace std;
 
-Downloader::Downloader(string uri, uint concurrentThreads) {
+Downloader::Downloader(string uri, uint concurrentThreads, string accountId,
+                       string key) {
   // ---------------------------------------------------------------
   // # Setup
   // ---------------------------------------------------------------
@@ -34,7 +35,7 @@ Downloader::Downloader(string uri, uint concurrentThreads) {
   }
 
   // Setup AWS cloud provider
-  _provider = cloud::Provider::makeProvider(uri, false, "", "",
+  _provider = cloud::Provider::makeProvider(uri, false, accountId, key,
                                             _sendReceivers.back().get());
 
   if (_provider->getType() != cloud::Provider::CloudService::AWS) {
@@ -51,8 +52,7 @@ Downloader::Downloader(string uri, uint concurrentThreads) {
   */
 }
 
-void Downloader::start(ProgressTracker &tracker,
-                      string filePrefix,
+void Downloader::start(ProgressTracker &tracker, string filePrefix,
                        vector<FileIdentifier> &fileIDs) {
   // ---------------------------------------------------------------
   // # Requests + Processing
@@ -63,14 +63,28 @@ void Downloader::start(ProgressTracker &tracker,
   vector<future<void>> asyncSendReceiverThreads;
   vector<future<void>> requestCreatorThreads;
 
-  auto createCallback = [&tracker](FileIdentifier fileID) {
-    return [&tracker, fileID](network::MessageResult &result) {
+  size_t finishedMessages = 0;
+
+  auto createCallback = [&tracker, &finishedMessages](FileIdentifier fileID) {
+    return [&tracker, &finishedMessages,
+            fileID](network::MessageResult &result) {
       auto [column, part] = fileID;
+      finishedMessages++;
       if (!result.success()) {
         cerr << "Request was not successful: " << result.getFailureCode()
              << endl;
+      } else {
+        auto vec = result.moveDataVector();
+
+        auto buf = vec->transferBuffer();
+
+        auto new_vec = make_unique<vector<uint8_t>>(
+            buf.get(), buf.get() + result.getSize());
+
+        new_vec->erase(new_vec->begin(), new_vec->begin() + result.getOffset());
+
+        tracker.registerDownload(column, part, std::move(new_vec));
       }
-      tracker.registerDownload(column, part, result.moveDataVector());
     };
   };
 
@@ -86,8 +100,8 @@ void Downloader::start(ProgressTracker &tracker,
 
   // Create requests in round robin fashion so globally the sorted file order is
   // kept
-  auto createRequests = [this, &fileIDs, &numberOfFiles, &getTxn,
-                         &fullRange, &resolver,
+  auto createRequests = [this, &fileIDs, &numberOfFiles, &getTxn, &fullRange,
+                         &resolver,
                          &createCallback](uint startIndex, uint threadId) {
     auto currIndex = startIndex;
 
@@ -119,6 +133,21 @@ void Downloader::start(ProgressTracker &tracker,
 
   for (auto i = 0u; i < _concurrentThreads; i++)
     getTxn[i].processAsync(_group);
+
+  for (auto i = 0u; i < _concurrentThreads; i++) {
+    auto start = [this](uint i) { _sendReceivers[i]->run(); };
+    asyncSendReceiverThreads.push_back(async(launch::async, start, i));
+  }
+
+  while (finishedMessages != numberOfFiles) {
+    usleep(100);
+  }
+
+  cout << "finished"
+       << "\n";
+
+  for (auto i = 0u; i < _concurrentThreads; i++)
+    _sendReceivers[i]->stop();
 }
 
 } // namespace btrscan

@@ -14,7 +14,7 @@ using namespace std;
 
 class Downloader {
 public:
-  explicit Downloader(string uri, uint concurrentThreads);
+  explicit Downloader(string uri, uint concurrentThreads, string accountId, string key);
 
   void start(ProgressTracker& tracker, string filePrefix, vector<FileIdentifier>& fileIDs);
 

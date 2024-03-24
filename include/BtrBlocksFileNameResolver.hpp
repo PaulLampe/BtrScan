@@ -12,7 +12,7 @@ public:
   explicit BtrBlocksFileNameResolver(string prefix) { _filePrefix = prefix; }
 
   string resolve(FileIdentifier &fileID) {
-    return "column" + to_string(get<0>(fileID)) + "_part" +
+    return _filePrefix + "column" + to_string(get<0>(fileID)) + "_part" +
            to_string(get<1>(fileID)) + ".btr";
   };
 

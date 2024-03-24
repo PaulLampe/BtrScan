@@ -1,7 +1,7 @@
 # -------------------------------------------------------------------------------
 # btrscan
 # -------------------------------------------------------------------------------
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.22)
 project(btrscan VERSION 0.0.1)
 
 # -------------------------------------------------------------------------------
@@ -27,6 +27,7 @@ include("thirdparty/anyblob.cmake")
 include("thirdparty/arrow.cmake")
 include("thirdparty/btrblocks.cmake")
 include("thirdparty/gtest.cmake")
+include("thirdparty/gflags.cmake")
 
 # ---------------------------------------------------------------------------
 # include
