@@ -3,6 +3,7 @@
 #include "types.hpp"
 
 #include <gtest/gtest.h>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -33,7 +34,7 @@ TEST(ProgressTracker, SingleColumnSingleRowGroup) {
 
   std::vector<btrscan::FileIdentifier> fileIds = {{0, 0}};
 
-  tracker.registerDownload(0, 0, std::make_unique<std::vector<uint8_t>>());
+  tracker.registerDownload(0, 0, std::make_unique<uint8_t[]>(0), 0, 0);
 
   auto availableRowGroup = tracker.getNextRowGroup();
 
@@ -74,7 +75,7 @@ TEST(ProgressTracker, SingleColumnMultiRowGroup) {
 
   ASSERT_EQ(fileIds, expectedFileIds);
 
-  tracker.registerDownload(0, 0, std::make_unique<std::vector<uint8_t>>());
+  tracker.registerDownload(0, 0, std::make_unique<uint8_t[]>(0), 0, 0);
 
   for (int i = 0; i < 1; ++i) {
     auto availableRowGroup = tracker.getNextRowGroup();
@@ -85,7 +86,7 @@ TEST(ProgressTracker, SingleColumnMultiRowGroup) {
 
   ASSERT_FALSE(tracker.getNextRowGroup().has_value());
 
-  tracker.registerDownload(0, 1, std::make_unique<std::vector<uint8_t>>());
+  tracker.registerDownload(0, 1, std::make_unique<uint8_t[]>(0), 0, 0);
 
   for (int i = 0; i < 2; ++i) {
     auto availableRowGroup = tracker.getNextRowGroup();
@@ -96,7 +97,7 @@ TEST(ProgressTracker, SingleColumnMultiRowGroup) {
 
   ASSERT_FALSE(tracker.getNextRowGroup().has_value());
 
-  tracker.registerDownload(0, 2, std::make_unique<std::vector<uint8_t>>());
+  tracker.registerDownload(0, 2, std::make_unique<uint8_t[]>(0), 0, 0);
 
   for (int i = 0; i < 3; ++i) {
     auto availableRowGroup = tracker.getNextRowGroup();
@@ -147,17 +148,19 @@ TEST(ProgressTracker, MultiColumnMultiRowGroup) {
       btrscan::PartsResolver::getFileIdentifiers(partsMeta);
 
   std::vector<btrscan::FileIdentifier> expectedFileIds = {
-      {0, 0}, {1, 0}, {2, 0}, {0, 1}, {1, 1}, {0, 2}, {1, 2}, {1, 3},{2, 1}};
+      {0, 0}, {1, 0}, {2, 0}, {0, 1}, {1, 1}, {0, 2}, {1, 2}, {1, 3}, {2, 1}};
 
   ASSERT_EQ(fileIds, expectedFileIds);
 
-  tracker.registerDownload(0, 0, std::make_unique<std::vector<uint8_t>>());
+  auto dummyResultData = std::make_unique<uint8_t[]>(0);
+
+  tracker.registerDownload(0, 0, std::make_unique<uint8_t[]>(0), 0, 0);
   ASSERT_FALSE(tracker.getNextRowGroup().has_value());
 
-  tracker.registerDownload(1, 0, std::make_unique<std::vector<uint8_t>>());
+  tracker.registerDownload(1, 0, std::make_unique<uint8_t[]>(0), 0, 0);
   ASSERT_FALSE(tracker.getNextRowGroup().has_value());
 
-  tracker.registerDownload(2, 0, std::make_unique<std::vector<uint8_t>>());
+  tracker.registerDownload(2, 0, std::make_unique<uint8_t[]>(0), 0, 0);
 
   auto availableRowGroup = tracker.getNextRowGroup();
   ASSERT_TRUE(availableRowGroup.has_value());
@@ -165,7 +168,7 @@ TEST(ProgressTracker, MultiColumnMultiRowGroup) {
   // TODO
   ASSERT_FALSE(tracker.getNextRowGroup().has_value());
 
-  tracker.registerDownload(0, 1, std::make_unique<std::vector<uint8_t>>());
+  tracker.registerDownload(0, 1, std::make_unique<uint8_t[]>(0), 0, 0);
 
   availableRowGroup = tracker.getNextRowGroup();
   ASSERT_TRUE(availableRowGroup.has_value());
@@ -173,7 +176,7 @@ TEST(ProgressTracker, MultiColumnMultiRowGroup) {
   // TODO
   ASSERT_FALSE(tracker.getNextRowGroup().has_value());
 
-  tracker.registerDownload(1, 1, std::make_unique<std::vector<uint8_t>>());
+  tracker.registerDownload(1, 1, std::make_unique<uint8_t[]>(0), 0, 0);
 
   availableRowGroup = tracker.getNextRowGroup();
   ASSERT_TRUE(availableRowGroup.has_value());
@@ -181,11 +184,11 @@ TEST(ProgressTracker, MultiColumnMultiRowGroup) {
   // TODO
   ASSERT_FALSE(tracker.getNextRowGroup().has_value());
 
-  tracker.registerDownload(0,2, std::make_unique<std::vector<uint8_t>>());
+  tracker.registerDownload(0, 2, std::make_unique<uint8_t[]>(0), 0, 0);
   ASSERT_FALSE(tracker.getNextRowGroup().has_value());
 
-  tracker.registerDownload(1,2, std::make_unique<std::vector<uint8_t>>());
-  
+  tracker.registerDownload(1, 2, std::make_unique<uint8_t[]>(0), 0, 0);
+
   availableRowGroup = tracker.getNextRowGroup();
   ASSERT_TRUE(availableRowGroup.has_value());
   ASSERT_EQ(availableRowGroup.value().size(), 3);
@@ -193,14 +196,14 @@ TEST(ProgressTracker, MultiColumnMultiRowGroup) {
   availableRowGroup = tracker.getNextRowGroup();
   ASSERT_TRUE(availableRowGroup.has_value());
   ASSERT_EQ(availableRowGroup.value().size(), 3);
-  
+
   ASSERT_FALSE(tracker.getNextRowGroup().has_value());
 
-  tracker.registerDownload(1,3, std::make_unique<std::vector<uint8_t>>());
+  tracker.registerDownload(1, 3, std::make_unique<uint8_t[]>(0), 0, 0);
   ASSERT_FALSE(tracker.getNextRowGroup().has_value());
 
-  tracker.registerDownload(2,1, std::make_unique<std::vector<uint8_t>>());
-  
+  tracker.registerDownload(2, 1, std::make_unique<uint8_t[]>(0), 0, 0);
+
   availableRowGroup = tracker.getNextRowGroup();
   ASSERT_TRUE(availableRowGroup.has_value());
   ASSERT_EQ(availableRowGroup.value().size(), 3);

@@ -94,16 +94,7 @@ void Downloader::start(ProgressTracker &tracker, string filePrefix,
         cerr << "Request was not successful: " << result.getFailureCode()
              << endl;
       } else {
-        auto vec = result.moveDataVector();
-
-        auto buf = vec->transferBuffer();
-
-        auto new_vec = make_unique<vector<uint8_t>>(
-            buf.get(), buf.get() + result.getSize());
-
-        new_vec->erase(new_vec->begin(), new_vec->begin() + result.getOffset());
-
-        tracker.registerDownload(column, part, std::move(new_vec));
+        tracker.registerDownload(column, part, result.getDataVector().transferBuffer(), result.getOffset(), result.getSize());
       }
     };
   };

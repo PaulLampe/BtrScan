@@ -33,10 +33,12 @@ ProgressTracker::ProgressTracker(int numberOfRowGroups,
 }
 
 void ProgressTracker::registerDownload(uint column, uint part,
-                                       unique_ptr<vector<uint8_t>> result) {
+                                       unique_ptr<uint8_t[]> result,
+                                       size_t offset, size_t size) {
   std::map<int, bool> finishedRowGroupStatus;
 
-  _data[column][part] = std::move(result);
+  _data[column][part] =
+      make_pair(std::move(result), DataRange{.offset = offset, .size = size});
 
   auto coveredRanges = _meta.columnPartCoveringRanges[column][part];
 
@@ -74,8 +76,7 @@ void ProgressTracker::registerDownload(uint column, uint part,
   }
 }
 
-optional<map<ColumnIndex,
-             pair<shared_ptr<DownloadDataVectorType>, PartInternalOffset>>>
+optional<map<ColumnIndex, pair<DownloadDataVectorType, PartInternalOffset>>>
 ProgressTracker::getNextRowGroup() {
   size_t row_group_i;
 
@@ -88,7 +89,7 @@ ProgressTracker::getNextRowGroup() {
     _availableRowGroups.erase(_availableRowGroups.begin());
   }
 
-  map<ColumnIndex, pair<shared_ptr<DownloadDataVectorType>, PartInternalOffset>>
+  map<ColumnIndex, pair<DownloadDataVectorType, PartInternalOffset>>
       rowGroupData;
 
   auto rowGroupToChunkAndPart = _meta.rowGroupLocations[row_group_i];
@@ -96,9 +97,14 @@ ProgressTracker::getNextRowGroup() {
   for (auto &column : _columns) {
     auto partAndOffset = rowGroupToChunkAndPart[column];
 
-    auto &data = _data[column][partAndOffset.part];
+    // ownership stays with progresstracker, is guaranteed to stay alive until
+    // the last rowroup in this part is finished
+    auto &[data_ptr, range] = _data[column][partAndOffset.part];
 
-    rowGroupData[column] = make_pair(data, partAndOffset.offset);
+    vector<uint8_t> data_vector(data_ptr.get() + range.offset,
+                                data_ptr.get() + range.offset + range.size);
+
+    rowGroupData[column] = make_pair(data_vector, partAndOffset.offset);
   }
 
   return rowGroupData;
