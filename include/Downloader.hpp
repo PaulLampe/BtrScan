@@ -3,6 +3,7 @@
 #include "types.hpp"
 #include "ProgressTracker.hpp"
 #include <cloud/provider.hpp>
+#include <cstdint>
 #include <network/tasked_send_receiver.hpp>
 #include <memory>
 #include <string>
@@ -17,6 +18,8 @@ public:
   explicit Downloader(string uri, uint concurrentThreads, string accountId, string key);
 
   void start(ProgressTracker& tracker, string filePrefix, vector<FileIdentifier>& fileIDs);
+
+  tuple<unique_ptr<uint8_t[]>, size_t, size_t> fetchMetaData(string filePrefix);
 
 private:
   uint _concurrentThreads = 1;

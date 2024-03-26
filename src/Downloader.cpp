@@ -6,8 +6,10 @@
 #include "network/transaction.hpp"
 #include "types.hpp"
 #include <cstddef>
+#include <cstdint>
 #include <future>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <sys/types.h>
@@ -50,6 +52,24 @@ Downloader::Downloader(string uri, uint concurrentThreads, string accountId,
     awsProvider->initResolver(*sendReceivers[i].get());
   }
   */
+}
+
+tuple<unique_ptr<uint8_t[]>, size_t, size_t>
+Downloader::fetchMetaData(string filePrefix) {
+  anyblob::network::Transaction getTxn(_provider.get());
+  getTxn.getObjectRequest(filePrefix + "metadata.btr");
+
+  getTxn.processSync(*_sendReceivers.back());
+
+  // Get and print the result
+  for (auto &result : getTxn) {
+    auto dataVector = result.moveDataVector();
+
+    return make_tuple(dataVector->transferBuffer(), result.getOffset(),
+                      result.getSize());
+  }
+
+  throw std::runtime_error("Could not fetch metadata");
 }
 
 void Downloader::start(ProgressTracker &tracker, string filePrefix,

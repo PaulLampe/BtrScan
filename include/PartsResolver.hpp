@@ -2,37 +2,25 @@
 #include <cstddef>
 #include <map>
 #include <vector>
+#include "types.hpp"
 
 namespace btrscan {
 
 using namespace std;
 
-using ColumnIndex = size_t;
-using PartIndex = size_t;
-using ChunkIndex = size_t;
-
-using RowGroupIndex = size_t;
-
-using RangeType = tuple<RowGroupIndex, RowGroupIndex>;
-
-using PartMappedToCoveredRanges = map<PartIndex, vector<RangeType>>;
-
-using RowGroupMappedToChunkAndPart = vector<tuple<PartIndex, ChunkIndex>>;
-
 class PartsResolver {
 
 public:
-  map<ColumnIndex,
-      pair<RowGroupMappedToChunkAndPart, PartMappedToCoveredRanges>>
-  resolveDownloadParts(const vector<ColumnIndex> &columns,
-                       const vector<RangeType> &ranges,
+  static PartResolverMeta resolveDownloadParts(const vector<ColumnIndex> &columns,
+                       const vector<Range> &ranges,
                        const btrblocks::ArrowMetaData &meta);
 
-private:
-  int sumRanges(const vector<RangeType> &ranges) {
+  static vector<FileIdentifier> getFileIdentifiers(PartResolverMeta& meta);
+
+  static int numberOfRowGroupsInRanges(const vector<Range> &ranges) {
     int sum = 0;
     for (const auto &range : ranges) {
-      sum += (get<1>(range) - get<0>(range) + 1);
+      sum += (range.end - range.start + 1);
     }
     return sum;
   }
