@@ -19,12 +19,17 @@ add_compile_options(-march=native -Wall -Wextra)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/thirdparty)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(BUILD_ARROW "BUILD_ARROW" ON)
+
 # ---------------------------------------------------------------------------
 # Dependencies
 # ---------------------------------------------------------------------------
 
-include("thirdparty/anyblob.cmake")
+if (${BUILD_ARROW})
 include("thirdparty/arrow.cmake")
+endif()
+
+include("thirdparty/anyblob.cmake")
 include("thirdparty/btrblocks.cmake")
 include("thirdparty/gtest.cmake")
 include("thirdparty/gflags.cmake")
