@@ -3,7 +3,6 @@
 #include "ProgressTracker.hpp"
 #include "arrow/ArrowMetaData.hpp"
 #include "types.hpp"
-#include "utils/timer.hpp"
 #include <cloud/aws.hpp>
 #include <cstddef>
 #include <future>
@@ -13,9 +12,8 @@
 #include <thread>
 #include <vector>
 
-DEFINE_string(account_id, "Account Id", "Account id");
-
-DEFINE_string(access_key, "Access key", "Private access key");
+DECLARE_string(account_id);
+DECLARE_string(access_key);
 
 TEST(DownloadBasic, SingleFile) {
   btrblocks::ArrowMetaData btrBlocksMeta{0, 0, {}};

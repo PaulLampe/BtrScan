@@ -8,6 +8,10 @@
 // ---------------------------------------------------------------------------
 using namespace btrblocks;
 // ---------------------------------------------------------------------------
+DEFINE_string(account_id, "Account Id", "Account id");
+
+DEFINE_string(access_key, "Access key", "Private access key");
+// ---------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
    testing::InitGoogleTest(&argc, argv);
