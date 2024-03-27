@@ -1,6 +1,5 @@
 #include "Downloader.hpp"
 #include "BtrBlocksFileNameResolver.hpp"
-#include "btrblocks.hpp"
 #include "cloud/aws.hpp"
 #include "network/tasked_send_receiver.hpp"
 #include "network/transaction.hpp"
@@ -29,7 +28,7 @@ Downloader::Downloader(string uri, uint concurrentThreads, string accountId,
   // ---------------------------------------------------------------
 
   // Setup tasked send receiver group
-  _group.setConcurrentRequests(concurrentThreads);
+  _group.setConcurrentRequests(concurrentThreads * 100);
 
   // Setup send-receivers
   for (auto i = 0u; i < concurrentThreads; i++) {
@@ -89,13 +88,13 @@ void Downloader::start(ProgressTracker &tracker, string filePrefix,
     return [&tracker, &finishedMessages,
             fileID](network::MessageResult &result) {
       auto [column, part] = fileID;
-      finishedMessages++;
       if (!result.success()) {
         cerr << "Request was not successful: " << result.getFailureCode()
              << endl;
       } else {
         tracker.registerDownload(column, part, result.getDataVector().transferBuffer(), result.getOffset(), result.getSize());
       }
+      finishedMessages++;
     };
   };
 
@@ -154,11 +153,9 @@ void Downloader::start(ProgressTracker &tracker, string filePrefix,
     usleep(100);
   }
 
-  cout << "finished"
-       << "\n";
-
-  for (auto i = 0u; i < _concurrentThreads; i++)
+  for (auto i = 0u; i < _concurrentThreads; i++) {
     _sendReceivers[i]->stop();
+  }
 }
 
 } // namespace btrscan

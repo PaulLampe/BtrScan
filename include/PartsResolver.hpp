@@ -1,6 +1,5 @@
 #include "btrblocks.hpp"
 #include <cstddef>
-#include <map>
 #include <vector>
 #include "types.hpp"
 
@@ -17,8 +16,8 @@ public:
 
   static vector<FileIdentifier> getFileIdentifiers(PartResolverMeta& meta);
 
-  static int numberOfRowGroupsInRanges(const vector<Range> &ranges) {
-    int sum = 0;
+  static size_t numberOfRowGroupsInRanges(const vector<Range> &ranges) {
+    size_t sum = 0;
     for (const auto &range : ranges) {
       sum += (range.end - range.start + 1);
     }

@@ -2,10 +2,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <iterator>
 #include <map>
-#include <tuple>
-#include <utility>
+#include <memory>
+#include <span>
 #include <vector>
 
 namespace btrscan {
@@ -90,7 +89,17 @@ private:
   map<ColumnIndex, PartCoveringRangesMap> _map{};
 };
 
-using DownloadDataVectorType = vector<uint8_t>;
+struct DataRange {
+  size_t offset;
+  size_t size;
+};
+
+using CompressedDataType = std::span<uint8_t>;
+
+struct CompressedColumnPartReference {
+  unique_ptr<uint8_t[]> data;
+  DataRange range;
+};
 
 class RowGroupColumnLocation {
 public:

@@ -1,16 +1,13 @@
 #include "ProgressTracker.hpp"
 #include "types.hpp"
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
-#include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <set>
-#include <string>
-#include <tuple>
+#include <span>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -35,15 +32,16 @@ ProgressTracker::ProgressTracker(int numberOfRowGroups,
 void ProgressTracker::registerDownload(uint column, uint part,
                                        unique_ptr<uint8_t[]> result,
                                        size_t offset, size_t size) {
-  std::map<int, bool> finishedRowGroupStatus;
-
-  _data[column][part] =
-      make_pair(std::move(result), DataRange{.offset = offset, .size = size});
-
-  auto coveredRanges = _meta.columnPartCoveringRanges[column][part];
+  unordered_map<size_t, bool> finishedRowGroupStatus;
 
   {
     lock_guard<mutex> lock(_global_lock);
+
+    _data[column][part] = CompressedColumnPartReference{
+        .data = std::move(result),
+        .range = DataRange{.offset = offset, .size = size}};
+
+    auto coveredRanges = _meta.columnPartCoveringRanges[column][part];
 
     auto &finishedColRg = _columnDict[column];
 
@@ -76,7 +74,7 @@ void ProgressTracker::registerDownload(uint column, uint part,
   }
 }
 
-optional<map<ColumnIndex, pair<DownloadDataVectorType, PartInternalOffset>>>
+optional<unordered_map<ColumnIndex, pair<CompressedDataType, PartInternalOffset>>>
 ProgressTracker::getNextRowGroup() {
   size_t row_group_i;
 
@@ -89,8 +87,7 @@ ProgressTracker::getNextRowGroup() {
     _availableRowGroups.erase(_availableRowGroups.begin());
   }
 
-  map<ColumnIndex, pair<DownloadDataVectorType, PartInternalOffset>>
-      rowGroupData;
+  unordered_map<ColumnIndex, pair<CompressedDataType, PartInternalOffset>> rowGroupData;
 
   auto rowGroupToChunkAndPart = _meta.rowGroupLocations[row_group_i];
 
@@ -99,12 +96,13 @@ ProgressTracker::getNextRowGroup() {
 
     // ownership stays with progresstracker, is guaranteed to stay alive until
     // the last rowroup in this part is finished
-    auto &[data_ptr, range] = _data[column][partAndOffset.part];
+    auto &dataReference = _data[column][partAndOffset.part];
+    auto startPtr = dataReference.data.get() + dataReference.range.offset;
 
-    vector<uint8_t> data_vector(data_ptr.get() + range.offset,
-                                data_ptr.get() + range.offset + range.size);
+    auto span =
+        std::span<uint8_t>(startPtr, startPtr + dataReference.range.size);
 
-    rowGroupData[column] = make_pair(data_vector, partAndOffset.offset);
+    rowGroupData[column] = make_pair(span, partAndOffset.offset);
   }
 
   return rowGroupData;

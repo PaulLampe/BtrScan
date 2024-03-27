@@ -3,12 +3,14 @@
 #include "ProgressTracker.hpp"
 #include "arrow/ArrowMetaData.hpp"
 #include "types.hpp"
-
+#include "utils/timer.hpp"
 #include <cloud/aws.hpp>
+#include <cstddef>
+#include <future>
 #include <gflags/gflags.h>
 #include <gtest/gtest.h>
-#include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 DEFINE_string(account_id, "Account Id", "Account id");
@@ -42,21 +44,40 @@ TEST(DownloadBasic, SingleColumnSingleRow) {
   auto btrBlocksMeta = btrblocks::ArrowMetaData(
       std::vector<uint8_t>(data.get() + offset, data.get() + offset + size));
 
-  auto columns = std::vector<size_t>{1};
-  auto ranges = std::vector<btrscan::Range>{{40, 100}};
+  auto columns = std::vector<size_t>{0, 1, 2, 3, 4, 5};
+  auto ranges = std::vector<btrscan::Range>{{0, 131}};
 
   auto partsMeta = btrscan::PartsResolver::resolveDownloadParts(columns, ranges,
                                                                 btrBlocksMeta);
 
-  auto tracker = btrscan::ProgressTracker(
-      btrscan::PartsResolver::numberOfRowGroupsInRanges(ranges), columns,
-      partsMeta);
+  auto numberOfRowGroups =
+      btrscan::PartsResolver::numberOfRowGroupsInRanges(ranges);
+
+  auto tracker =
+      btrscan::ProgressTracker(numberOfRowGroups, columns, partsMeta);
 
   std::vector<btrscan::FileIdentifier> fileIds =
       btrscan::PartsResolver::getFileIdentifiers(partsMeta);
 
-  std::vector<btrscan::FileIdentifier> expectedFileIds{{1, 1}, {1, 2}};
+  auto starter = [&downloader, &tracker, &fileIds]() {
+    downloader.start(tracker, "data/medicare1_1/", fileIds);
+  };
 
-  ASSERT_EQ(fileIds, expectedFileIds);
-  downloader.start(tracker, "data/medicare1_1/", fileIds);
+  size_t availableRowGroups = 0;
+
+  auto checkAvailable = [&tracker, &availableRowGroups, numberOfRowGroups]() {
+    while (availableRowGroups != numberOfRowGroups) {
+      while (tracker.getNextRowGroup().has_value()) {
+        availableRowGroups++;
+      }
+    }
+  };
+
+  std::thread starter_thread(starter);
+
+  std::future<void> f(async(std::launch::async, checkAvailable));
+
+  starter_thread.join();
+
+  f.get();
 }

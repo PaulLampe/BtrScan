@@ -40,6 +40,5 @@ add_library(Parquet SHARED IMPORTED)
 set_property(TARGET Parquet PROPERTY IMPORTED_LOCATION ${ARROW_PARQUET_LIBRARY_PATH})
 set_property(TARGET Parquet APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${ARROW_INCLUDE_DIR})
 
-
 # Dependencies
 add_dependencies(Arrow arrow_src)

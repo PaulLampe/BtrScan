@@ -52,5 +52,5 @@ include("${PROJECT_SOURCE_DIR}/test/local.cmake")
 # ---------------------------------------------------------------------------
 
 add_library(BtrScan STATIC ${SRC_CPP} ${INCLUDE_HPP})
-target_link_libraries(BtrScan PUBLIC AnyBlob btrblocks)
+target_link_libraries(BtrScan PUBLIC AnyBlob btrblocks Arrow)
 target_include_directories(BtrScan PUBLIC ${PROJECT_SOURCE_DIR}/include)
