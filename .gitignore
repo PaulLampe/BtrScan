@@ -2,4 +2,4 @@
 .vscode
 build/
 data/*
-.secret
+.secrets
