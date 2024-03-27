@@ -65,8 +65,7 @@ void BtrLocalScanner::scan(
 
         auto &rowGroupLocations = resolvedParts.rowGroupLocations[chunk_i];
 
-        unordered_map<ColumnIndex,
-                      std::pair<CompressedDataType, PartInternalOffset>>
+        map<ColumnIndex, std::pair<CompressedDataType, PartInternalOffset>>
             data{};
 
         for (auto &column_i : columnIndices) {

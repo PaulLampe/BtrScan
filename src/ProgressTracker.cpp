@@ -7,7 +7,6 @@
 #include <optional>
 #include <set>
 #include <span>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -24,7 +23,7 @@ ProgressTracker::ProgressTracker(int numberOfRowGroups,
                                  const vector<ColumnIndex> &columns,
                                  const PartResolverMeta &meta)
     : _columns(columns), _meta(meta) {
-  for (auto col : columns) {
+  for (auto &col : _columns) {
     _columnDict[col] = std::vector<bool>(numberOfRowGroups, false);
   }
 }
@@ -32,16 +31,16 @@ ProgressTracker::ProgressTracker(int numberOfRowGroups,
 void ProgressTracker::registerDownload(uint column, uint part,
                                        unique_ptr<uint8_t[]> result,
                                        size_t offset, size_t size) {
-  unordered_map<size_t, bool> finishedRowGroupStatus;
+  map<size_t, bool> finishedRowGroupStatus;
 
   {
     lock_guard<mutex> lock(_global_lock);
 
-    _data[column][part] = CompressedColumnPartReference{
+    this->_data[column][part] = CompressedColumnPartReference{
         .data = std::move(result),
         .range = DataRange{.offset = offset, .size = size}};
 
-    auto coveredRanges = _meta.columnPartCoveringRanges[column][part];
+    auto &coveredRanges = _meta.columnPartCoveringRanges[column][part];
 
     auto &finishedColRg = _columnDict[column];
 
@@ -74,7 +73,8 @@ void ProgressTracker::registerDownload(uint column, uint part,
   }
 }
 
-optional<unordered_map<ColumnIndex, pair<CompressedDataType, PartInternalOffset>>>
+optional<
+    map<ColumnIndex, pair<CompressedDataType, PartInternalOffset>>>
 ProgressTracker::getNextRowGroup() {
   size_t row_group_i;
 
@@ -87,12 +87,13 @@ ProgressTracker::getNextRowGroup() {
     _availableRowGroups.erase(_availableRowGroups.begin());
   }
 
-  unordered_map<ColumnIndex, pair<CompressedDataType, PartInternalOffset>> rowGroupData;
+  map<ColumnIndex, pair<CompressedDataType, PartInternalOffset>>
+      rowGroupData;
 
   auto rowGroupToChunkAndPart = _meta.rowGroupLocations[row_group_i];
 
   for (auto &column : _columns) {
-    auto partAndOffset = rowGroupToChunkAndPart[column];
+    auto& partAndOffset = rowGroupToChunkAndPart[column];
 
     // ownership stays with progresstracker, is guaranteed to stay alive until
     // the last rowroup in this part is finished

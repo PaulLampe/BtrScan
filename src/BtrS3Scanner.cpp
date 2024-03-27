@@ -59,27 +59,30 @@ void BtrS3Scanner::scan(
     _downloader.start(tracker, filePrefix, fileIds);
   };
 
-  // Keep track of the number fully downloaded (and therefore available) row groups
+  // Keep track of the number fully downloaded (and therefore available) row
+  // groups
   size_t availableRowGroups = 0;
 
   // Get schema from metadata
   auto schema =
       btrblocks::MetaDataUtils::resolveSchema(btrBlocksMeta, columnIndices);
 
-  // Actual callback 
+  // Actual callback
   auto handleCallback = [&tracker, &availableRowGroups, &callback, &schema,
                          numberOfRowGroups]() {
     while (availableRowGroups != numberOfRowGroups) {
-      do {
-        auto data = tracker.getNextRowGroup();
+      auto data = tracker.getNextRowGroup();
 
+      if (data.has_value()) {
         availableRowGroups++;
+        auto val = data.value();
         auto batch = btrblocks::ArrowRowGroupDecompressor::decompressRowGroup(
-            schema, data.value());
+            schema, val);
 
         callback(batch);
-      } while (tracker.getNextRowGroup().has_value());
-      usleep(100);
+      } else {
+        usleep(100);
+      }
     }
   };
 
