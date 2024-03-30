@@ -23,9 +23,9 @@ public:
 
 private:
   uint _concurrentThreads = 1;
-  std::unique_ptr<anyblob::cloud::Provider> _provider;
-  std::unique_ptr<BtrBlocksFileNameResolver> _fileNameResolver;
-  vector<unique_ptr<anyblob::network::TaskedSendReceiver>> _sendReceivers{};
+  unique_ptr<anyblob::cloud::Provider> _provider;
+  unique_ptr<BtrBlocksFileNameResolver> _fileNameResolver;
+  vector<unique_ptr<anyblob::network::TaskedSendReceiverHandle>> _sendReceiverHandles{};
   anyblob::network::TaskedSendReceiverGroup _group{};
 };
 

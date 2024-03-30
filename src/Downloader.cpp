@@ -32,12 +32,12 @@ Downloader::Downloader(string uri, uint concurrentThreads, string accountId,
 
   // Setup send-receivers
   for (auto i = 0u; i < concurrentThreads; i++) {
-    _sendReceivers.push_back(make_unique<network::TaskedSendReceiver>(_group));
+    _sendReceiverHandles.push_back(make_unique<network::TaskedSendReceiverHandle>(_group.getHandle()));
   }
 
   // Setup AWS cloud provider
   _provider = cloud::Provider::makeProvider(uri, false, accountId, key,
-                                            _sendReceivers.back().get());
+                                            _sendReceiverHandles.back().get());
 
   if (_provider->getType() != cloud::Provider::CloudService::AWS) {
     throw runtime_error("Can only handle aws buckets atm");
@@ -58,7 +58,7 @@ Downloader::fetchMetaData(string filePrefix) {
   anyblob::network::Transaction getTxn(_provider.get());
   getTxn.getObjectRequest(filePrefix + "metadata.btr");
 
-  getTxn.processSync(*_sendReceivers.back());
+  getTxn.processSync(*_sendReceiverHandles.back());
 
   // Get and print the result
   for (auto &result : getTxn) {
@@ -124,7 +124,7 @@ void Downloader::start(ProgressTracker &tracker, string filePrefix,
         return getTxn[threadId].getObjectRequest(
             createCallback(fileIdentifier), filePath, fullRange, nullptr, 0);
       };
-      getTxn[threadId].verifyKeyRequest(*_sendReceivers.back(),
+      getTxn[threadId].verifyKeyRequest(*_sendReceiverHandles.back(),
                                         std::move(getObjectRequest));
 
       currIndex += _concurrentThreads;
@@ -145,7 +145,7 @@ void Downloader::start(ProgressTracker &tracker, string filePrefix,
     getTxn[i].processAsync(_group);
 
   for (auto i = 0u; i < _concurrentThreads; i++) {
-    auto start = [this](uint i) { _sendReceivers[i]->run(); };
+    auto start = [this](uint i) { _sendReceiverHandles[i]->process(false); };
     asyncSendReceiverThreads.push_back(async(launch::async, start, i));
   }
 
@@ -154,7 +154,7 @@ void Downloader::start(ProgressTracker &tracker, string filePrefix,
   }
 
   for (auto i = 0u; i < _concurrentThreads; i++) {
-    _sendReceivers[i]->stop();
+    _sendReceiverHandles[i]->stop();
   }
 }
 
