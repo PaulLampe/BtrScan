@@ -23,6 +23,19 @@ void BtrLocalScanner::prepareDataset(const string &filePrefix) {
   _metaDataMap[filePrefix] = btrBlocksMeta;
 };
 
+shared_ptr<arrow::Schema> BtrLocalScanner::getSchema(const string &filePrefix) {
+  if (!_metaDataMap.contains(filePrefix)) {
+    prepareDataset(filePrefix);
+  }
+  auto &btrBlocksMeta = _metaDataMap[filePrefix];
+
+  vector<size_t> columnIndices(btrBlocksMeta.numColumns);
+  std::iota(columnIndices.begin(), columnIndices.end(), 0);
+
+  return btrblocks::MetaDataUtils::resolveSchema(btrBlocksMeta,columnIndices);
+};
+
+
 map<ColumnIndex, map<PartIndex, vector<uint8_t>>>
 BtrLocalScanner::mmapColumns(const string &filePrefix, vector<size_t> &columnIndices) {
   if (!_metaDataMap.contains(filePrefix)) {

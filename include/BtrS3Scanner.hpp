@@ -18,6 +18,7 @@ public:
   explicit BtrS3Scanner(Downloader &downloader) : _downloader(downloader) {}
 
   void prepareDataset(const string &filePrefix);
+  shared_ptr<arrow::Schema> getSchema(const string &filePrefix);
 
   void scan(const string &filePrefix, const vector<string> &columns,
             const function<void(shared_ptr<arrow::RecordBatch>)> &callback,

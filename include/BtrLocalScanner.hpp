@@ -21,6 +21,8 @@ public:
     const function<void(shared_ptr<arrow::RecordBatch>)> &callback,
     const optional<vector<Range>>& ranges);
 
+  shared_ptr<arrow::Schema> getSchema(const string &filePrefix);
+
 private:
 
   unordered_map<string, btrblocks::ArrowMetaData> _metaDataMap;

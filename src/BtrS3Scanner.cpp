@@ -18,6 +18,18 @@ void BtrS3Scanner::prepareDataset(const string &filePrefix) {
   _metaDataMap[filePrefix] = btrBlocksMeta;
 };
 
+shared_ptr<arrow::Schema> BtrS3Scanner::getSchema(const string &filePrefix) {
+  if (!_metaDataMap.contains(filePrefix)) {
+    prepareDataset(filePrefix);
+  }
+  auto &btrBlocksMeta = _metaDataMap[filePrefix];
+
+  vector<size_t> columnIndices(btrBlocksMeta.numColumns);
+  std::iota(columnIndices.begin(), columnIndices.end(), 0);
+
+  return btrblocks::MetaDataUtils::resolveSchema(btrBlocksMeta,columnIndices);
+};
+
 void BtrS3Scanner::scan(
     const string &filePrefix, const vector<string> &columns,
     const function<void(shared_ptr<arrow::RecordBatch>)> &callback,
