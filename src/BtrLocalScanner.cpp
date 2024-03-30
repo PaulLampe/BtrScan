@@ -9,23 +9,36 @@
 #include <cstddef>
 #include <cstdint>
 #include <map>
+#include <sys/types.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 #include <utility>
 
 namespace btrscan {
 
+void BtrLocalScanner::prepareDataset(const string &filePrefix) {
+  vector<uint8_t> data;
+  btrblocks::Utils::readFileToMemory(filePrefix + "/metadata.btr", data);
+  auto btrBlocksMeta = btrblocks::ArrowMetaData(data);
+  _metaDataMap[filePrefix] = btrBlocksMeta;
+};
+
 map<ColumnIndex, map<PartIndex, vector<uint8_t>>>
-BtrLocalScanner::mmapColumns(vector<size_t> &columnIndices) {
+BtrLocalScanner::mmapColumns(const string &filePrefix, vector<size_t> &columnIndices) {
+  if (!_metaDataMap.contains(filePrefix)) {
+    prepareDataset(filePrefix);
+  }
+  auto &btrBlocksMeta = _metaDataMap[filePrefix];
+
   map<ColumnIndex, map<PartIndex, vector<uint8_t>>> output{};
 
   for (auto &columnIndex : columnIndices) {
-    auto columnMeta = metadata.columnMeta[columnIndex];
+    auto columnMeta = btrBlocksMeta.columnMeta[columnIndex];
 
-    auto filePrefix = folder + "/column" + to_string(columnIndex) + "_part";
+    auto columnPartPrefix = filePrefix + "/column" + to_string(columnIndex) + "_part";
 
     for (size_t part_i = 0; part_i < columnMeta.numParts; part_i++) {
-      auto filePath = filePrefix + to_string(part_i) + ".btr";
+      auto filePath = columnPartPrefix + to_string(part_i) + ".btr";
       output[columnIndex][part_i] = btrblocks::Utils::mmapFile(filePath);
     }
   }
@@ -47,12 +60,12 @@ void BtrLocalScanner::scan(
   auto requestedRanges = ranges.value_or(std::move(fullRange));
 
   auto columnIndices =
-      btrblocks::MetaDataUtils::resolveColumnIndices(metadata, columns);
+      btrblocks::MetaDataUtils::resolveColumnIndices(btrBlocksMeta, columns);
 
-  auto columnParts = mmapColumns(columnIndices);
+  auto columnParts = mmapColumns(filePrefix, columnIndices);
 
   auto schema =
-      btrblocks::MetaDataUtils::resolveSchema(metadata, columnIndices);
+      btrblocks::MetaDataUtils::resolveSchema(btrBlocksMeta, columnIndices);
 
   auto resolvedParts = PartsResolver::resolveDownloadParts(
       columnIndices, requestedRanges, btrBlocksMeta);

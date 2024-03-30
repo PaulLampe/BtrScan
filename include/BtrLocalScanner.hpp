@@ -3,6 +3,7 @@
 #include <arrow/type_fwd.h>
 #include "types.hpp"
 #include <memory>
+#include <string>
 #include "arrow/ArrowMetaData.hpp"
 
 namespace btrscan {
@@ -10,9 +11,6 @@ namespace btrscan {
 using namespace std;
 
 class BtrLocalScanner {
-
-unordered_map<string, btrblocks::ArrowMetaData> _metaDataMap;
-
 
 public:
 
@@ -23,14 +21,10 @@ public:
     const function<void(shared_ptr<arrow::RecordBatch>)> &callback,
     const optional<vector<Range>>& ranges);
 
-  shared_ptr<arrow::Schema> getSchema();
-
 private:
 
-  btrblocks::ArrowMetaData metadata;
-  string folder;
-
-  map<ColumnIndex, map<PartIndex, vector<uint8_t>>> mmapColumns(vector<size_t>& columnIndices);
+  unordered_map<string, btrblocks::ArrowMetaData> _metaDataMap;
+  map<ColumnIndex, map<PartIndex, vector<uint8_t>>> mmapColumns(const string &filePrefix, vector<size_t>& columnIndices);
 };
 
 
