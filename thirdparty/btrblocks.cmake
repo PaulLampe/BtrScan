@@ -10,3 +10,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(btrblocks)
 
 FetchContent_GetProperties(btrblocks)
+
+set_target_properties(btrblocks PROPERTIES
+  BUILD_ARROW OFF
+)

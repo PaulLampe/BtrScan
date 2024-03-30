@@ -18,14 +18,14 @@ add_compile_options(-march=native -Wall -Wextra)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/thirdparty)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-option(BUILD_ARROW "BUILD_ARROW" ON)
+option(BTRSCAN_BUILD_ARROW "BTRSCAN_BUILD_ARROW" ON)
 
 # ---------------------------------------------------------------------------
 # Dependencies
 # ---------------------------------------------------------------------------
 
-if (${BUILD_ARROW})
+message("Building Arrow: " ${BTRSCAN_BUILD_ARROW})
+if (${BTRSCAN_BUILD_ARROW})
 include("thirdparty/arrow.cmake")
 endif()
 
